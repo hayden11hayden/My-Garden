@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Farming Game</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; background: #e7f1cb;}
+    #game-container { display: flex; flex-direction: row; }
+    #left-panel { width: 315px; min-width: 280px; }
+    #seed-shop, #sell-shop, #inventory, #save-panel { background: #fffbe9; border-radius: 10px; margin: 10px; padding: 14px 10px 12px 10px; }
+    #seed-shop { margin-top: 18px; border: 2px solid #8bc34a;}
+    #seed-shop h2 { margin-top: 0; color: #388e3c;}
+    #seed-shop button { margin-bottom: 10px;width: 90%; font-size:16px;}
+    #inventory { margin-top: 12px; border: 2px solid #cddc39;}
+    #inventory h2 { margin-top: 0; color: #827717;}
+    #inventory-list { min-height: 44px;}
+    .inventory-row { display: flex; align-items: center; margin-bottom: 3px; }
+    .inventory-equip-btn { flex: 1; border: 2px solid #bdb76b; background: #fafad2; border-radius: 6px; padding: 2px 6px; font-size: 15px; cursor: pointer; margin-right: 7px; transition: background 0.2s, outline 0.2s; outline: none; }
+    .inventory-equip-btn.equipped { background: #a9db8f !important; outline: 2.5px solid #4caf50; }
+    .shovel-btn { font-size: 17px; border: 2px solid #bcae6e; background: #ffecb3; margin-top: 10px; border-radius: 6px; transition: background 0.2s, outline 0.2s; outline: none;}
+    .shovel-btn.equipped { background: #a9db8f !important; outline: 2.5px solid #4caf50; }
+    #sell-shop { margin-top: 12px; border: 2px solid #ff9800;}
+    #sell-shop h2 { margin-top: 0; color: #e65100;}
+    #sell-inventory-btn, #sell-item-btn, #item-worth-btn { font-size: 15px; margin: 4px 0; width: 95%; display: block;}
+    #money-display { position: fixed; right: 12px; bottom: 14px; background: #ecffb2; padding: 12px 22px; font-size: 20px; border-radius: 8px; border: 2px solid #4caf50; z-index: 999;}
+    #plot-area-outer { position: relative; display: flex; flex-direction: row; justify-content: flex-start; align-items: center; margin: 38px 0 0 0; }
+    .plot-expansion-col { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 70px;}
+    .plot-expansion-row { display: flex; flex-direction: row; align-items: center; justify-content: center; min-height: 50px;}
+    #plot-center-wrap { display: flex; flex-direction: column; align-items: center; }
+    #plot-expand-btn-top, #plot-expand-btn-bottom {
+      margin: 0 0 8px 0;
+      z-index: 10; font-size: 15px; background: #ede7f6; border: 2px solid #7e57c2; border-radius: 7px; padding: 2px 16px; cursor: pointer;
+    }
+    #plot-expand-btn-bottom { margin: 8px 0 0 0; }
+    #plot-expand-btn-left, #plot-expand-btn-right {
+      margin: 0 0 0 0;
+      z-index: 10; font-size: 15px; background: #ede7f6; border: 2px solid #7e57c2; border-radius: 7px; padding: 8px 2px; cursor: pointer;
+      writing-mode: vertical-lr;
+    }
+    /* Arrow nav buttons */
+    .plot-arrow-btn {
+      margin: 3px 0;
+      background: #d1c4e9;
+      border: 2px solid #5e35b1;
+      color: #222;
+      border-radius: 7px;
+      font-size: 22px;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      outline: none;
+    }
+    .plot-arrow-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #plot-expand-count-top, #plot-expand-count-bottom {
+      z-index: 11; font-size: 16px; color: #4e342e; font-weight: bold; margin: 0 0 8px 0; pointer-events: none;
+    }
+    #plot-expand-count-bottom { margin: 8px 0 0 0; }
+    #plot-expand-count-left, #plot-expand-count-right {
+      z-index: 11; font-size: 16px; color: #4e342e; font-weight: bold; margin: 0 0 0 0; pointer-events: none;
+    }
+    #plot-expand-count-right { }
+    #plot-container { }
+    #plot { display: grid; gap: 2px; user-select: none; background: #795548; border-radius: 10px; width: max-content; transition: transform 0.3s cubic-bezier(.5,1.8,.5,1); }
+    .plot-cell { width: 36px; height: 36px; background: #a77c48; border-radius: 4px; border: 1px solid #6d4c22; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px;}
+    .plot-cell.planted { background: #a9db8f;}
+    .plot-cell.ready { background: #f4e8b1;}
+    .plot-cell.harvested { background: #a77c48;}
+    .plot-cell.dying { background: #e57373;}
+    .selected { outline: 3px solid #38761d;}
+    .shop-seed { font-size: 18px; margin-right: 8px;}
+    .sell-item-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;}
+    .sell-item-row.selected { background: #ffe082;}
+    .sell-item-row button { margin-left: 5px;}
+    .sell-item-row:last-child { margin-bottom: 8px;}
+    #worth-text { color: #388e3c; margin-top: 6px;}
+    #save-panel { margin-top: 12px; border: 2px solid #90caf9;}
+    #save-panel h2 { margin-top: 0; color: #1565c0;}
+    .save-slot-btn { font-size: 15px; border-radius: 6px; margin: 3px 0; width: 97%; padding: 5px; background: #e3f2fd; border: 1.5px solid #2196f3; cursor: pointer; }
+    .save-slot-btn.active { background: #bbdefb; outline: 2px solid #1976d2; }
+    .save-action-btn { font-size: 15px; border-radius: 6px; margin: 3px 0; width: 97%; padding: 5px; background: #fffde7; border: 1.5px solid #ffb300; cursor: pointer;}
+    .save-status { color: #1565c0; font-size: 13px; margin-top: 3px; }
+    @media (max-width: 800px) {
+      #plot { transform: scale(0.8); transform-origin: top left;}
+      #plot-container { max-width: 400px; overflow-x: scroll;}
+      #money-display { right: 2px; }
+      .plot-expansion-col { min-width: 40px; }
+      #plot-expand-btn-left, #plot-expand-btn-right { padding: 6px 1px; }
+    }
+  </style>
+</head>
+<body>
+<div id="game-container">
+  <div id="left-panel">
+    <div id="seed-shop">
+      <h2>Seed Shop</h2>
+      <div>
+        <span class="shop-seed">🥕</span>
+        Carrot Seed (10$)
+        <button onclick="buySeed('carrot')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🍓</span>
+        Strawberry Seed (45$)
+        <button onclick="buySeed('strawberry')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🫐</span>
+        Blueberry Seed (120$)
+        <button onclick="buySeed('blueberry')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🌽</span>
+        Corn Seed (1000$)
+        <button onclick="buySeed('corn')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🥭</span>
+        Mango Seed (20000$)
+        <button onclick="buySeed('mango')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🥭🟦</span>
+        Moon Mango Seed (200000$)
+        <button onclick="buySeed('moonmango')">Buy</button>
+      </div>
+      <div>
+      <span class="shop-seed">🍇</span>
+       Grape Seed (1M$)
+        <button onclick="buySeed('grape')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🌸</span>
+        Cherry Blossom Seed (1.2M$)
+        <button onclick="buySeed('cherryblossom')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🌶️</span>
+        Pepper Seed (2M$)
+        <button onclick="buySeed('pepper')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🍫</span>
+        Cacao Seed (10M$)
+        <button onclick="buySeed('cacao')">Buy</button>
+      </div>
+      <div>
+        <span class="shop-seed">🫛</span>
+        Beanstalk Seed (50M$)
+        <button onclick="buySeed('beanstalk')">Buy</button>
+      </div>
+       <div>
+        <span class="shop-seed">🟡</span>
+        Golden Beanstalk Seed (350M$)
+        <button onclick="buySeed('goldenbeanstalk')">Buy</button>
+      </div>
+      <div>
+    <span class="shop-seed">🍬</span>
+      Candy Blossom Seed  (400M$)
+  <button onclick="buySeed('candyblossom')">Buy</button>
+</div>
+<div>
+    <span class="shop-seed">🍬</span>
+      Cotton Blossom Seed  (1B$)
+  <button onclick="buySeed('cottonblossom')">Buy</button>
+</div>
+<hr>
+<h2 style="color:#1565c0;">Gear Shop</h2>
+<div>
+  <span class="shop-seed">🧰</span>
+  Chest (50,000$)
+  <button onclick="buyChest()">Buy</button>
+  <span id="chest-count" style="margin-left:8px;"></span>
+</div>
+    </div>
+    <div id="inventory">
+
+      <h2>Inventory</h2>
+      <div>
+        <button class="shovel-btn" id="shovel-btn" onclick="equipShovel()">
+          🥄 Shovel
+        </button>
+      </div>
+      <div id="inventory-list"></div>
+    </div>
+    <div id="sell-shop">
+      <h2>Sell Shop</h2>
+      <div id="sell-list"></div>
+      <button id="item-worth-btn" onclick="showWorth()">How much is this worth?</button>
+      <div id="worth-text"></div>
+      <button id="sell-item-btn" onclick="sellSelectedItem()">Sell This Item</button>
+      <button id="sell-inventory-btn" onclick="sellAll()">Sell Inventory</button>
+    </div>
+    <div id="save-panel">
+      <h2>Save Slots</h2>
+      <div id="save-slots"></div>
+      <button class="save-action-btn" onclick="addSaveSlot()">Add Save Slot</button>
+      <button class="save-action-btn" onclick="saveGame()">Save Game</button>
+      <div class="save-status" id="save-status"></div>
+    </div>
+  </div>
+  <div id="plot-area-outer">
+    <div class="plot-expansion-col" style="margin-right: 30px;">
+      <span id="plot-expand-count-left"></span>
+      <button id="plot-expand-btn-left" onclick="expandPlot('left')">← Expand<br>-$1000</button>
+      <button id="plot-arrow-btn-left" class="plot-arrow-btn" onclick="moveView('left')" style="margin-top:20px;">&#8592;</button>
+    </div>
+    <div id="plot-center-wrap" style="margin-right: 34px;">
+      <div class="plot-expansion-row">
+        <span id="plot-expand-count-top"></span>
+      </div>
+      <div class="plot-expansion-row">
+        <button id="plot-expand-btn-top" onclick="expandPlot('top')">↑ Expand<br>-$1000</button>
+      </div>
+      <button id="plot-arrow-btn-up" class="plot-arrow-btn" onclick="moveView('up')" style="margin-bottom:20px;">&#8593;</button>
+      <div id="plot-container">
+        <div id="plot"></div>
+      </div>
+      <button id="plot-arrow-btn-down" class="plot-arrow-btn" onclick="moveView('down')" style="margin-top:20px;">&#8595;</button>
+      <div class="plot-expansion-row">
+        <button id="plot-expand-btn-bottom" onclick="expandPlot('bottom')">↓ Expand<br>-$1000</button>
+      </div>
+      <div class="plot-expansion-row">
+        <span id="plot-expand-count-bottom"></span>
+      </div>
+    </div>
+    <div class="plot-expansion-col" style="margin-left: 30px;">
+      <span id="plot-expand-count-right"></span>
+      <button id="plot-expand-btn-right" onclick="expandPlot('right')">→ Expand<br>-$1000</button>
+      <button id="plot-arrow-btn-right" class="plot-arrow-btn" onclick="moveView('right')" style="margin-top:20px;">&#8594;</button>
+    </div>
+  </div>
+</div>
+<div id="money-display">💵 Money: <span id="money">30</span></div>
+<script>
+const BASE_ROWS = 10;
+const BASE_COLS = 10;
+const EXPAND_COST = 1000;
+const MAX_VIEW = 10;
+
+// Crop emojis and shop/inventory/plot support for all crops
+const CROP_PROPS = {
+  carrot:    { emoji: "🥕", growTime: 2000,  multiHarvest: false, seedPrice: 10,     minSell: 15,    maxSell: 30,    name: "Carrot" },
+  strawberry:{ emoji: "🍓", growTime: 5000,  multiHarvest: true,  seedPrice: 45,     minSell: 10,    maxSell: 30,    name: "Strawberry" },
+  blueberry: { emoji: "🫐", growTime: 5000,  multiHarvest: true,  seedPrice: 120,    minSell: 40,    maxSell: 90,    name: "Blueberry" },
+  corn:      { emoji: "🌽", growTime: 9000,  multiHarvest: true,  seedPrice: 1000,   minSell: 500,   maxSell: 1000,  name: "Corn" },
+  mango:     { emoji: "🥭", growTime: 7000,  multiHarvest: true,  seedPrice: 20000,  minSell: 25000, maxSell: 25000, name: "Mango" },
+  moonmango: { emoji: "🟦", growTime: 7000,  multiHarvest: true,  seedPrice: 200000, minSell: 75000, maxSell: 75000, name: "Moon Mango" },
+    grape:     { emoji: "🍇", growTime: 5000, multiHarvest: true, seedPrice: 1000000, minSell: 80000, maxSell: 100000, name: "Grape" }, 
+    cherryblossom: { emoji: "🌸", growTime: 3000, multiHarvest: true, seedPrice: 1200000, minSell: 5000, maxSell: 10000, name: "Cherry Blossom" },
+  pepper:    { emoji: "🌶️",growTime: 15000, multiHarvest: true,  seedPrice: 2000000,minSell: 400000,maxSell: 500000,name: "Pepper" },
+  cacao:     { emoji: "🍫", growTime: 10000, multiHarvest: true,  seedPrice: 10000000,minSell: 200000,maxSell: 400000,name: "Cacao" },
+  beanstalk: { emoji: "🫛", growTime: 9000, multiHarvest: true, seedPrice: 50000000,minSell: 450000,     maxSell: 650000,     name: "Beanstalk" },
+  goldenbeanstalk: { emoji: "🟡", growTime: 9000, multiHarvest: true, seedPrice: 350000000,minSell: 1000000,     maxSell: 10000000,     name: "Golden Beanstalk" },
+  candyblossom: { emoji: "🍬", growTime: 10000, multiHarvest: true, seedPrice: 400000000, minSell: 90000000, maxSell: 150000000, name: "Candy Blossom" },
+  cottonblossom: { emoji: "🧶", growTime: 8000, multiHarvest: true, seedPrice: 1000000000, minSell: 1500000000, maxSell: 3500000000, name: "Cotton Blossom" }
+};
+
+let plot = [];
+let money = 30;
+let inventory = {};
+Object.keys(CROP_PROPS).forEach(crop => {
+  inventory[crop] = 0;
+  inventory[`${crop}-seed`] = 0;
+});
+let equipped = null;
+let shovelEquipped = false;
+let growTimers = {};
+let selectedSellItem = null;
+
+let expandLeft = 0, expandRight = 0, expandTop = 0, expandBottom = 0;
+let viewRow = 0, viewCol = 0;
+
+let saveSlots = [];
+let currentSaveSlot = null;
+let autosaveTimer = null;
+let chestCount = 0;
+let chestPlacing = false;
+let chests = []; 
+// Animation state
+let isAnimating = false;
+let animationDirection = null;
+let animationProgress = 0; // 0 to 1
+
+function now() { return Date.now(); }
+function getFullRows() { return BASE_ROWS + expandTop + expandBottom; }
+function getFullCols() { return BASE_COLS + expandLeft + expandRight; }
+function getBasePlot(rows, cols) {
+  return Array.from({length: rows}, ()=>
+    Array.from({length: cols}, ()=>
+      ({state:'empty',crop:null,multiHarvestReady:false,plantedAt:null,readyAt:null})
+    )
+  );
+}
+
+(function initSaveSlotsOnLoad() {
+  let slots = JSON.parse(localStorage.getItem('farminggame_saveslots') || '[]');
+  let defaultId = 'slot-1stgarden';
+  let prevSlot = localStorage.getItem('farminggame_lastslot');
+  if (!slots.length) {
+    slots.push({
+      id: defaultId,
+      name: "1st garden",
+      data: null
+    });
+    localStorage.setItem('farminggame_saveslots', JSON.stringify(slots));
+    currentSaveSlot = defaultId;
+    saveGame(true);
+  } else if (prevSlot && slots.some(s=>s.id===prevSlot)) {
+    currentSaveSlot = prevSlot;
+    let slot = slots.find(s=>s.id===currentSaveSlot);
+    if (slot && slot.data) importGameState(slot.data, true);
+  } else {
+    currentSaveSlot = slots[0].id;
+    let slot = slots[0];
+    if (slot && slot.data) importGameState(slot.data, true);
+    else saveGame(true);
+  }
+  localStorage.setItem('farminggame_lastslot', currentSaveSlot);
+})();
+
+window.addEventListener('beforeunload', function() {
+  saveGame(true);
+  localStorage.setItem('farminggame_lastslot', currentSaveSlot);
+});
+
+function setupGame() {
+  renderPlot();
+  updateMoney();
+  updateInventory();
+  updateSellShop();
+  updateEquippedDisplay();
+  renderSaveSlots();
+  updateExpandCounts();
+  updateChestCount();
+  document.getElementById('save-status').textContent = '';
+}
+function renderPlot() {
+  const plotDiv = document.getElementById('plot');
+  plotDiv.style.transition = isAnimating ? 'none' : '';
+  plotDiv.style.transform = '';
+  plotDiv.style.gridTemplateColumns = `repeat(${MAX_VIEW}, 36px)`;
+  plotDiv.style.gridTemplateRows = `repeat(${MAX_VIEW}, 36px)`;
+  plotDiv.innerHTML = '';
+  let rows = getFullRows(), cols = getFullCols();
+  if (!plot.length || plot.length !== rows || plot[0].length !== cols) {
+    let oldPlot = plot;
+    plot = getBasePlot(rows, cols);
+    if (oldPlot && oldPlot.length) {
+      for (let r = 0; r < Math.min(oldPlot.length,rows); r++) {
+        for (let c = 0; c < Math.min(oldPlot[0].length,cols); c++) {
+          plot[r][c] = oldPlot[r][c];
+        }
+      }
+    }
+  }
+  // Clamp view
+  viewRow = Math.max(0, Math.min(viewRow, rows - MAX_VIEW));
+  viewCol = Math.max(0, Math.min(viewCol, cols - MAX_VIEW));
+  for (let r = 0; r < MAX_VIEW; r++) {
+    for (let c = 0; c < MAX_VIEW; c++) {
+      let plotR = viewRow + r;
+      let plotC = viewCol + c;
+      if (plotR >= rows || plotC >= cols) {
+        let cellDiv = document.createElement('div');
+        cellDiv.className = "plot-cell";
+        plotDiv.appendChild(cellDiv);
+        continue;
+      }
+      const cell = plot[plotR][plotC];
+      const cellDiv = document.createElement('div');
+      cellDiv.className = "plot-cell";
+      if (cell.state === 'growing' || cell.state === 'planted') cellDiv.classList.add('planted');
+      if (cell.state === 'ready') cellDiv.classList.add('ready');
+      cellDiv.id = `cell-${plotR}-${plotC}`;
+const chestHere = chests.find(ch => ch.r === plotR && ch.c === plotC);
+if (chestHere) {
+  cellDiv.textContent = "🧰";
+  cellDiv.title = "Chest";
+  cellDiv.classList.add("ready");
+}
+cellDiv.onclick = (e) => clickCell(plotR, plotC, e);      cellDiv.textContent = cell.state !== 'empty' && cell.crop ? CROP_PROPS[cell.crop].emoji : '';
+      plotDiv.appendChild(cellDiv);
+    }
+  }
+  updateExpandCounts();
+  updateArrowButtons();
+}
+
+function animatePlotShift(dir) {
+  if (isAnimating) return;
+  isAnimating = true;
+  animationDirection = dir;
+  animationProgress = 0;
+  const duration = 320; // ms
+  const plotDiv = document.getElementById('plot');
+  plotDiv.style.transition = 'none';
+  let shiftPx = (36 + 2); // cell + gap
+  let offset = dir === 'left' ? shiftPx : -shiftPx;
+  plotDiv.style.transform = `translateX(${offset}px)`;
+  setTimeout(() => {
+    plotDiv.style.transition = 'transform 0.3s cubic-bezier(.5,1.8,.5,1)';
+    plotDiv.style.transform = 'translateX(0)';
+    setTimeout(() => {
+      finishAnimationPlotShift(dir);
+    }, 300);
+  }, 10);
+}
+
+function finishAnimationPlotShift(dir) {
+  let rows = getFullRows(), cols = getFullCols();
+  if (dir === 'left' && viewCol > 0)  viewCol = Math.max(0, viewCol-1);
+  if (dir === 'right' && viewCol < cols - MAX_VIEW) viewCol = Math.min(cols-MAX_VIEW, viewCol+1);
+  isAnimating = false;
+  renderPlot();
+}
+
+function moveView(dir) {
+  let rows = getFullRows(), cols = getFullCols();
+  if (isAnimating) return;
+  if (dir === 'left' && viewCol > 0)  { animatePlotShift('left'); return; }
+  if (dir === 'right' && viewCol < cols - MAX_VIEW) { animatePlotShift('right'); return; }
+  if (dir === 'up' && viewRow > 0)    viewRow = Math.max(0, viewRow-1);
+  if (dir === 'down' && viewRow < rows - MAX_VIEW)  viewRow = Math.min(rows-MAX_VIEW, viewRow+1);
+  renderPlot();
+}
+
+function expandPlot(side) {
+  if (money < EXPAND_COST) {
+    alert("Not enough money to expand!");
+    return;
+  }
+  money -= EXPAND_COST;
+  if (side === 'top') {
+    plot.unshift(Array(getFullCols()).fill().map(()=>({state:'empty',crop:null,multiHarvestReady:false,plantedAt:null,readyAt:null})));
+    expandTop++;
+    viewRow++;
+    // Shift all chests down by 1 row to keep them visually in place
+    chests.forEach(ch => ch.r++);
+  } else if (side === 'bottom') {
+    plot.push(Array(getFullCols()).fill().map(()=>({state:'empty',crop:null,multiHarvestReady:false,plantedAt:null,readyAt:null})));
+    expandBottom++;
+  } else if (side === 'left') {
+    for (let r=0; r<getFullRows(); r++) plot[r].unshift({state:'empty',crop:null,multiHarvestReady:false,plantedAt:null,readyAt:null});
+    expandLeft++;
+    viewCol++;
+    // Shift all chests right by 1 column to keep them visually in place
+    chests.forEach(ch => ch.c++);
+  } else if (side === 'right') {
+    for (let r=0; r<getFullRows(); r++) plot[r].push({state:'empty',crop:null,multiHarvestReady:false,plantedAt:null,readyAt:null});
+    expandRight++;
+  }
+  updateExpandCounts();
+  renderPlot();
+  updateMoney();
+  saveGame(true);
+}
+
+function updateExpandCounts() {
+  document.getElementById('plot-expand-count-left').innerHTML = `← ${expandLeft}`;
+  document.getElementById('plot-expand-count-right').innerHTML = `${expandRight} →`;
+  document.getElementById('plot-expand-count-top').innerHTML = `↑ ${expandTop}`;
+  document.getElementById('plot-expand-count-bottom').innerHTML = `${expandBottom} ↓`;
+}
+
+function updateArrowButtons() {
+  let rows = getFullRows(), cols = getFullCols();
+  document.getElementById('plot-arrow-btn-left').disabled = !(viewCol > 0) || isAnimating;
+  document.getElementById('plot-arrow-btn-right').disabled = !(viewCol < cols - MAX_VIEW) || isAnimating;
+  document.getElementById('plot-arrow-btn-up').disabled = !(viewRow > 0) || isAnimating;
+  document.getElementById('plot-arrow-btn-down').disabled = !(viewRow < rows - MAX_VIEW) || isAnimating;
+}
+
+function updateMoney() {
+  document.getElementById('money').textContent = money;
+}
+
+function updateInventory() {
+  let html = '';
+  Object.keys(CROP_PROPS).forEach(crop => {
+    const seedKey = `${crop}-seed`;
+    if (inventory[seedKey] > 0) {
+      html += `<div class="inventory-row">
+        <button type="button" onclick="toggleEquipSeed('${seedKey}')" class="inventory-equip-btn${equipped==seedKey&&!shovelEquipped?' equipped':''}" id="equip-btn-${seedKey}">
+          ${CROP_PROPS[crop].emoji} ${CROP_PROPS[crop].name} Seed
+        </button>
+        x${inventory[seedKey]}
+      </div>`;
+    }
+  });
+  Object.keys(CROP_PROPS).forEach(crop => {
+    if (inventory[crop] > 0) {
+      html += `<div class="inventory-row">
+        <span style="margin-right:7px;">${CROP_PROPS[crop].emoji} ${CROP_PROPS[crop].name}</span> x${inventory[crop]}
+      </div>`;
+    }
+  });
+  // Add chest to inventory UI
+  if (inventory['chest'] > 0) {
+    html += `<div class="inventory-row">
+      <button type="button" onclick="equipChest()" class="inventory-equip-btn${equipped==='chest'?' equipped':''}" id="equip-btn-chest">
+        🧰 Chest
+      </button>
+      x${inventory['chest']}
+    </div>`;
+  }
+  document.getElementById('inventory-list').innerHTML = html;
+  document.getElementById('shovel-btn').className = 'shovel-btn' + (shovelEquipped ? ' equipped' : '');
+}
+
+function toggleEquipSeed(seed) {
+  if (equipped === seed && !shovelEquipped) {
+    equipped = null;
+  } else {
+    equipped = seed;
+    shovelEquipped = false;
+  }
+  updateEquippedDisplay();
+  updateInventory();
+}
+
+function equipShovel() {
+  if (shovelEquipped) {
+    shovelEquipped = false;
+    equipped = null;
+  } else {
+    shovelEquipped = true;
+    equipped = 'shovel';
+  }
+  updateEquippedDisplay();
+  updateInventory();
+}
+
+function updateEquippedDisplay() {
+  document.getElementById('shovel-btn').className = 'shovel-btn' + (shovelEquipped ? ' equipped' : '');
+}
+function buyChest() {
+  if (money >= 50000) {
+    money -= 50000;
+    inventory['chest'] = (inventory['chest'] || 0) + 1;
+    updateMoney();
+    updateInventory();
+    alert("Chest added to your inventory! Equip and place it from your inventory.");
+  } else {
+    alert("Not enough money!");
+  }
+}
+
+function updateChestCount() {
+  document.getElementById('chest-count').textContent = `You have ${chestCount} chest${chestCount!==1?'s':''}`;
+}
+
+function buySeed(type) {
+  let key = `${type}-seed`;
+  if (money >= CROP_PROPS[type].seedPrice) {
+    money -= CROP_PROPS[type].seedPrice;
+    inventory[key] = (inventory[key]||0) + 1;
+    updateMoney();
+    updateInventory();
+  } else {
+    alert("Not enough money!");
+  }
+}
+
+function clickCell(r, c, event) {
+  let cell = plot[r][c];
+  let cellDiv = document.getElementById(`cell-${r}-${c}`);
+
+  // Place chest if equipped
+  if (
+    equipped === "chest" &&
+    cell.state === "empty" &&
+    !chests.some((ch) => ch.r === r && ch.c === c) &&
+    inventory["chest"] > 0
+  ) {
+    chests.push({ r, c, items: {} });
+    inventory["chest"]--;
+    equipped = null;
+    updateInventory();
+    renderPlot();
+    return;
+  }
+
+  // Chest interaction
+  let chest = chests.find((ch) => ch.r === r && ch.c === c);
+  if (chest) {
+    if (event && event.shiftKey) {
+      // Collect chest back, return items to inventory and chest to inventory
+      for (let item in chest.items) {
+        inventory[item] = (inventory[item] || 0) + chest.items[item];
+      }
+      inventory["chest"] = (inventory["chest"] || 0) + 1;
+      updateInventory();
+      chests = chests.filter((ch) => !(ch.r === r && ch.c === c));
+      renderPlot();
+      alert(
+        "Chest collected! Items returned to inventory and chest added to inventory."
+      );
+    } else {
+      // Show chest contents
+      let contents = Object.keys(chest.items).length
+        ? Object.entries(chest.items)
+            .map(
+              ([k, v]) =>
+                `${CROP_PROPS[k]?.emoji || ""} ${CROP_PROPS[k]?.name || k}: ${v}`
+            )
+            .join("\n")
+        : "(empty)";
+      alert(`Chest contains:\n${contents}`);
+
+      // Store items in chest (with "all" support)
+      let storeable = Object.keys(inventory).filter(
+        (k) => inventory[k] > 0 && !k.endsWith("-seed") && k !== "chest"
+      );
+      if (storeable.length === 0) {
+        alert("No items to store!");
+      } else {
+        let item = prompt(
+          "Which item do you want to store? (Type name, e.g. 'carrot', or type 'all' to store everything)\n" +
+            storeable
+              .map((k) => `${CROP_PROPS[k]?.name || k}: ${inventory[k]}`)
+              .join("\n")
+        );
+        if (item) {
+          item = item.toLowerCase();
+          if (item === "all") {
+            let stored = [];
+            for (let key of storeable) {
+              if (inventory[key] > 0) {
+                chest.items[key] = (chest.items[key] || 0) + inventory[key];
+                stored.push(
+                  `${inventory[key]} ${CROP_PROPS[key]?.name || key}`
+                );
+                inventory[key] = 0;
+              }
+            }
+            updateInventory();
+            updateSellShop();
+            setTimeout(() => {
+              alert(`Stored all items in chest:\n${stored.join("\n")}`);
+            }, 10);
+          } else {
+            let key =
+              Object.keys(CROP_PROPS).find(
+                (k) => CROP_PROPS[k].name.toLowerCase() === item
+              ) || item;
+            if (!inventory[key] || inventory[key] <= 0) {
+              alert("You don't have that item!");
+            } else {
+              let amt = parseInt(
+                prompt(
+                  `How many ${CROP_PROPS[key]?.name || key} to store? (You have ${
+                    inventory[key]
+                  })`,
+                  "1"
+                )
+              );
+              if (!amt || amt < 1 || amt > inventory[key]) return;
+              inventory[key] -= amt;
+              chest.items[key] = (chest.items[key] || 0) + amt;
+              updateInventory();
+              updateSellShop();
+              setTimeout(() => {
+                alert(
+                  `Stored ${amt} ${CROP_PROPS[key]?.name || key} in chest!`
+                );
+              }, 10);
+            }
+          }
+        }
+      }
+
+      // Take items back from chest
+      if (Object.keys(chest.items).length > 0) {
+        let take = prompt(
+          "Type the name of an item to take from the chest, or leave blank to skip.\n" +
+            Object.entries(chest.items)
+              .map(
+                ([k, v]) => `${CROP_PROPS[k]?.name || k}: ${v}`
+              )
+              .join("\n")
+        );
+        if (take) {
+          take = take.toLowerCase();
+          let takeKey =
+            Object.keys(CROP_PROPS).find(
+              (k) => CROP_PROPS[k].name.toLowerCase() === take
+            ) || take;
+          if (!chest.items[takeKey] || chest.items[takeKey] <= 0) {
+            alert("That item is not in the chest!");
+            return;
+          }
+          let maxAmt = chest.items[takeKey];
+          let amt = parseInt(
+            prompt(
+              `How many ${CROP_PROPS[takeKey]?.name || takeKey} to take? (Chest has ${maxAmt})`,
+              "1"
+            )
+          );
+          if (!amt || amt < 1 || amt > maxAmt) return;
+          chest.items[takeKey] -= amt;
+          if (chest.items[takeKey] === 0) delete chest.items[takeKey];
+          inventory[takeKey] = (inventory[takeKey] || 0) + amt;
+          updateInventory();
+          updateSellShop();
+          setTimeout(() => {
+            alert(
+              `Took ${amt} ${CROP_PROPS[takeKey]?.name || takeKey} from chest!`
+            );
+          }, 10);
+        }
+      }
+    }
+    return;
+  }
+
+  // ...rest of your original clickCell code below...
+  if (cell.state === "ready" && !shovelEquipped) {
+    let cropType = cell.crop;
+    inventory[cropType] = (inventory[cropType] || 0) + 1;
+    updateInventory();
+    updateSellShop();
+    if (CROP_PROPS[cropType].multiHarvest && cell.multiHarvestReady) {
+      cell.state = "growing";
+      cell.multiHarvestReady = false;
+      cell.plantedAt = now();
+      cell.readyAt = now() + CROP_PROPS[cropType].growTime;
+      cellDiv.className = "plot-cell planted";
+      cellDiv.textContent = CROP_PROPS[cropType].emoji;
+      growTimers[`${r}-${c}`] = setTimeout(() => {
+        cell.state = "ready";
+        cell.readyAt = null;
+        cellDiv.className = "plot-cell ready";
+        cellDiv.textContent = CROP_PROPS[cropType].emoji;
+        cell.multiHarvestReady = true;
+      }, CROP_PROPS[cropType].growTime);
+    } else {
+      cell.state = "empty";
+      cell.crop = null;
+      cell.multiHarvestReady = false;
+      cell.plantedAt = null;
+      cell.readyAt = null;
+      cellDiv.className = "plot-cell";
+      cellDiv.textContent = "";
+    }
+    return;
+  }
+  if (shovelEquipped) {
+    if (
+      cell.state === "planted" ||
+      cell.state === "growing" ||
+      cell.state === "ready"
+    ) {
+      clearTimeout(growTimers[`${r}-${c}`]);
+      cell.state = "empty";
+      cell.crop = null;
+      cell.multiHarvestReady = false;
+      cell.plantedAt = null;
+      cell.readyAt = null;
+      cellDiv.className = "plot-cell";
+      cellDiv.textContent = "";
+    }
+    return;
+  }
+  if (equipped && equipped.endsWith("-seed") && !shovelEquipped) {
+    let cropType = equipped.replace("-seed", "");
+    if (cell.state === "empty" && inventory[equipped] > 0) {
+      cell.state = "growing";
+      cell.crop = cropType;
+      cell.multiHarvestReady = false;
+      cell.plantedAt = now();
+      cell.readyAt = now() + CROP_PROPS[cropType].growTime;
+      cellDiv.className = "plot-cell planted";
+      cellDiv.textContent = CROP_PROPS[cropType].emoji;
+      inventory[equipped]--;
+      updateInventory();
+      growTimers[`${r}-${c}`] = setTimeout(() => {
+        cell.state = "ready";
+        cell.readyAt = null;
+        cellDiv.className = "plot-cell ready";
+        cellDiv.textContent = CROP_PROPS[cropType].emoji;
+        if (CROP_PROPS[cropType].multiHarvest) cell.multiHarvestReady = true;
+      }, CROP_PROPS[cropType].growTime);
+    }
+    return;
+  }
+}
+
+function updateSellShop() {
+  let sellList = '';
+  let items = [];
+  Object.keys(CROP_PROPS).forEach(crop => {
+    if (inventory[crop] > 0) items.push(crop);
+  });
+  if (items.length === 0) {
+    sellList = "<i>No items to sell.</i>";
+    selectedSellItem = null;
+    document.getElementById('sell-item-btn').disabled = true;
+    document.getElementById('item-worth-btn').disabled = true;
+  } else {
+    for (let crop of items) {
+      sellList += `<div class="sell-item-row${selectedSellItem===crop?' selected':''}" onclick="selectSellItem('${crop}')">
+        <span>${CROP_PROPS[crop].emoji} ${CROP_PROPS[crop].name} x${inventory[crop]}</span>
+      </div>`;
+    }
+    document.getElementById('sell-item-btn').disabled = !selectedSellItem;
+    document.getElementById('item-worth-btn').disabled = !selectedSellItem;
+  }
+  document.getElementById('sell-list').innerHTML = sellList;
+}
+function selectSellItem(item) {
+  selectedSellItem = item;
+  updateSellShop();
+  document.getElementById('worth-text').textContent = '';
+}
+function showWorth() {
+  if (!selectedSellItem) return;
+  let crop = selectedSellItem;
+  let min = CROP_PROPS[crop].minSell, max = CROP_PROPS[crop].maxSell;
+  document.getElementById('worth-text').textContent = (min===max)
+    ? `Each ${CROP_PROPS[crop].name} sells for $${min}`
+    : `Each ${CROP_PROPS[crop].name} sells for $${min} to $${max}`;
+}
+function sellSelectedItem() {
+  if (!selectedSellItem) return;
+  let crop = selectedSellItem;
+  let amount = inventory[crop];
+  let total = 0;
+  for (let i=0; i<amount; i++) {
+    total += Math.floor(Math.random()*(CROP_PROPS[crop].maxSell - CROP_PROPS[crop].minSell + 1)) + CROP_PROPS[crop].minSell;
+  }
+  money += total;
+  inventory[crop] = 0;
+  updateMoney();
+  updateInventory();
+  updateSellShop();
+  document.getElementById('worth-text').textContent = `Sold ${amount} ${CROP_PROPS[crop].name}${amount>1?'s':''} for $${total}!`;
+  selectedSellItem = null;
+}
+function sellAll() {
+  let total = 0, soldItems = [];
+  Object.keys(CROP_PROPS).forEach(crop => {
+    let amount = inventory[crop]||0;
+    if (amount) {
+      soldItems.push(`${amount} ${CROP_PROPS[crop].name}${amount>1?'s':''}`);
+      for (let i=0;i<amount;i++) {
+        total += Math.floor(Math.random()*(CROP_PROPS[crop].maxSell - CROP_PROPS[crop].minSell + 1)) + CROP_PROPS[crop].minSell;
+      }
+      inventory[crop]=0;
+    }
+  });
+  if (total > 0) {
+    money += total;
+    updateMoney();
+    updateInventory();
+    updateSellShop();
+    document.getElementById('worth-text').textContent = `Sold ${soldItems.join(' & ')} for $${total}!`;
+    selectedSellItem = null;
+  } else {
+    document.getElementById('worth-text').textContent = `Nothing to sell!`;
+  }
+}
+
+function renderSaveSlots() {
+  let slots = JSON.parse(localStorage.getItem('farminggame_saveslots') || '[]');
+  saveSlots = slots;
+  let html = '';
+  for (let i = 0; i < saveSlots.length; ++i) {
+    const slot = saveSlots[i];
+    html += `<button type="button" class="save-slot-btn${currentSaveSlot===slot.id?' active':''}" onclick="loadSaveSlot('${slot.id}')">Slot ${i+1}${slot.name?(' - '+slot.name):''}${currentSaveSlot===slot.id?' (active)':''}</button>`;
+  }
+  document.getElementById('save-slots').innerHTML = html;
+}
+function addSaveSlot() {
+  let slots = JSON.parse(localStorage.getItem('farminggame_saveslots') || '[]');
+  let newId = 'slot-' + Date.now();
+  let name = prompt("Name this save slot? (Optional)", "");
+  let slot = {
+    id: newId,
+    name: name || "",
+    data: exportGameState()
+  };
+  slots.push(slot);
+  localStorage.setItem('farminggame_saveslots', JSON.stringify(slots));
+  currentSaveSlot = newId;
+  localStorage.setItem('farminggame_lastslot', currentSaveSlot);
+  renderSaveSlots();
+  saveGame(true);
+  document.getElementById('save-status').textContent = "Save slot added!";
+}
+function loadSaveSlot(id) {
+  let slots = JSON.parse(localStorage.getItem('farminggame_saveslots') || '[]');
+  let slot = slots.find(s => s.id === id);
+  if (!slot) return;
+  importGameState(slot.data, true);
+  currentSaveSlot = id;
+  localStorage.setItem('farminggame_lastslot', currentSaveSlot);
+  renderSaveSlots();
+  setupGame();
+  document.getElementById('save-status').textContent = "Loaded!";
+}
+function saveGame(noStatus) {
+  if (!currentSaveSlot) {
+    document.getElementById('save-status').textContent = "No save slot selected!";
+    return;
+  }
+  let slots = JSON.parse(localStorage.getItem('farminggame_saveslots') || '[]');
+  let idx = slots.findIndex(s => s.id === currentSaveSlot);
+  if (idx === -1) return;
+  slots[idx].data = exportGameState();
+  localStorage.setItem('farminggame_saveslots', JSON.stringify(slots));
+  localStorage.setItem('farminggame_lastslot', currentSaveSlot);
+  if (!noStatus) document.getElementById('save-status').textContent = "Game saved!";
+}
+function exportGameState() {
+  return {
+    plot: plot,
+    money: money,
+    inventory: inventory,
+    equipped: equipped,
+    shovelEquipped: shovelEquipped,
+    expandLeft, expandRight, expandTop, expandBottom,
+    viewRow, viewCol,
+    chests: chests, // <--- add this line
+    savedAt: now()
+  };
+}
+function equipChest() {
+  if (equipped === 'chest') {
+    equipped = null;
+  } else {
+    equipped = 'chest';
+    shovelEquipped = false;
+  }
+  updateEquippedDisplay();
+  updateInventory();
+}
+function importGameState(state, handleTimers) {
+    plot = JSON.parse(JSON.stringify(state.plot));
+  money = state.money;
+  inventory = Object.assign({}, inventory, state.inventory);
+  equipped = state.equipped;
+  shovelEquipped = state.shovelEquipped;
+  expandLeft = state.expandLeft || 0;
+  expandRight = state.expandRight || 0;
+  expandTop = state.expandTop || 0;
+  expandBottom = state.expandBottom || 0;
+  viewRow = state.viewRow || 0;
+  viewCol = state.viewCol || 0;
+  chests = state.chests || []; // <--- add this line
+  growTimers = {};
+  if (!plot.length) plot = getBasePlot(BASE_ROWS, BASE_COLS);
+  if (handleTimers) {
+    for (let r = 0; r < plot.length; r++) for (let c = 0; c < plot[0].length; c++) {
+      let cell = plot[r][c];
+      if (cell.state === 'growing' && cell.crop && cell.readyAt) {
+        let msLeft = cell.readyAt - now();
+        if (msLeft <= 0) {
+          cell.state = 'ready';
+          cell.readyAt = null;
+          if (CROP_PROPS[cell.crop].multiHarvest) cell.multiHarvestReady = true;
+        } else {
+          (function(rr,cc,cropType){
+            growTimers[`${rr}-${cc}`] = setTimeout(() => {
+              plot[rr][cc].state = 'ready';
+              plot[rr][cc].readyAt = null;
+              let div = document.getElementById(`cell-${rr}-${cc}`);
+              if (div) {
+                div.className = 'plot-cell ready';
+                div.textContent = CROP_PROPS[cropType].emoji;
+              }
+              if (CROP_PROPS[cropType].multiHarvest) plot[rr][cc].multiHarvestReady = true;
+            }, msLeft);
+          })(r,c,cell.crop);
+        }
+      }
+    }
+  }
+}
+
+function startAutosave() {
+  if (autosaveTimer) clearInterval(autosaveTimer);
+  autosaveTimer = setInterval(() => {
+    if (currentSaveSlot) {
+      saveGame(true);
+      document.getElementById('save-status').textContent = "Autosaved!";
+      setTimeout(()=>{document.getElementById('save-status').textContent='';}, 2000);
+    }
+  }, 60000);
+}
+startAutosave();
+
+setupGame();
+</script>
+</body>
+</html>
