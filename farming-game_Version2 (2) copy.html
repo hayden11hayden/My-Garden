@@ -100,6 +100,11 @@
   <div id="left-panel">
     <div id="seed-shop">
       <h2>Seed Shop</h2>
+     <div>
+        <span class="shop-seed">💸</span>
+        Free Money!!!!(-1$)
+        <button onclick="buySeed('freemoney')">Buy</button>
+      </div>
       <div>
         <span class="shop-seed">👨🏿</span>
         Austin the Slave(0$)
@@ -267,6 +272,8 @@ const MAX_VIEW = 10;
 
 // Crop emojis and shop/inventory/plot support for all crops
 const CROP_PROPS = { 
+     freemoney:    { emoji: "👨💸", growTime: 1000,  multiHarvest: false, seedPrice: -1,     minSell: 10,    maxSell:30 ,    name: "Free Money" },
+
     austinslave:    { emoji: "👨🏿", growTime: 1000,  multiHarvest: true, seedPrice: 0,     minSell: 10,    maxSell:30 ,    name: "Austin the Slave's Organ" },
 
   austin:    { emoji: "👨", growTime: 1500,  multiHarvest: true, seedPrice: 1,     minSell: 10,    maxSell:30 ,    name: "Austin" },
