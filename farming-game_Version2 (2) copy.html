@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -101,10 +101,16 @@
     <div id="seed-shop">
       <h2>Seed Shop</h2>
       <div>
+        <span class="shop-seed">👨🏿</span>
+        Austin the slave(0$)
+        <button onclick="buySeed('austinslave')">Buy</button>
+      </div>
+      <div>
         <span class="shop-seed">👨</span>
         Austin (1$)
         <button onclick="buySeed('austin')">Buy</button>
       </div>
+      
       <div>
         <span class="shop-seed">🍗</span>
         Chicken Nugget (2$)
@@ -256,6 +262,8 @@ const MAX_VIEW = 10;
 
 // Crop emojis and shop/inventory/plot support for all crops
 const CROP_PROPS = { 
+    austinslave:    { emoji: "👨🏿", growTime: 1000,  multiHarvest: true, seedPrice: 0,     minSell: 10,    maxSell:30 ,    name: "Austin the Slave" },
+
   austin:    { emoji: "👨", growTime: 1500,  multiHarvest: true, seedPrice: 1,     minSell: 10,    maxSell:30 ,    name: "Austin" },
   nugget:    { emoji: "🍗", growTime: 1000,  multiHarvest: true, seedPrice: 2,     minSell: 20,    maxSell:40 ,    name: "Chicken Nugget" },
 
